@@ -49,7 +49,7 @@ RUN Rscript -e 'if (!requireNamespace("BiocManager", quietly = TRUE)) {install.p
 
 # python modules
 RUN pip3 install --upgrade pip setuptools
-RUN pip3 install numpy pandas scipy
+RUN pip3 install numpy pandas scipy anndata
 RUN pip3 install pandas-plink ipython jupyter matplotlib pyarrow torch rpy2 gcsfs
 
 RUN cd /opt && \
