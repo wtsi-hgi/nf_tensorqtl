@@ -23,7 +23,8 @@ STRTRANSL_SPACE_TO_UNDERSCORE = str.maketrans({' ':'_'})
 FMT_BEDFNAM_COUNT_MARIX = "{:s}_{:s}_counts.bed.gz"
 FMT_FNAM_CELLNUM_TABLE = "{:s}_{:s}_ncells.tsv"
 FNAM_GENE_IDS = "gene_ids_without_annotation.txt"
-HEADER_OUFLST = "index\tcell-type\tcounts_file\tcellnum_file"
+FNAM_FILE_TABLE = "celltype_files.tsv"
+
 
 COUNT_MATRIX_COLUMN_DICT = {
     "chromosome": "#chr",
@@ -128,7 +129,7 @@ class DataHandover:
         # type(mr): <class 'numpy.matrix'>
         return df, n_cells_celltype, n_cells_qc
 
-    def write_failed_gene_ids(self, oufn = FNAM_GENE_IDS):
+    def write_unannotated_gene_ids(self, oufn = FNAM_GENE_IDS):
         with open(oufn, 'w') as oufh:
             for gn in self.failed_gene_ids:
                 oufh.write("{:s}\n".format(gn))
@@ -147,7 +148,6 @@ class DataHandover:
         counts_df = pandas.concat(count_df_lst, axis = 0, join = 'inner', ignore_index = True).set_index(self.ftab["donor_id"])
 
         donor_df = pandas.DataFrame({
-            "donor_id": self.ftab["donor_id"],
             "n_cells": n_cells_celltype_lst,
             "n_cells_qc_pass": n_cells_qc_pass_lst
             },
@@ -156,12 +156,14 @@ class DataHandover:
 
         return counts_df, donor_df
 
-    def aggregate_over_celltype(self, celltype = 'all', outdir = os.curdir, oufprfx = 'aggrsc'):
+    def aggregate_over_celltype(self, celltype = 'all', n_cells_min = int(0), outdir = os.curdir, oufprfx = 'aggrsc'):
         n_lines = 0
         count_matrix, donor_df = self.sum_counts_over_celltype(celltype = celltype)
         celltypestr = celltype.translate(STRTRANSL_SPACE_TO_UNDERSCORE)
-        oufn_matrix = os.path.join(outdir, FMT_BEDFNAM_COUNT_MARIX.format(oufprfx, celltypestr))
-        oufn_donor_table = os.path.join(outdir, FMT_FNAM_CELLNUM_TABLE.format(oufprfx, celltypestr))
+        oufn_matrix = FMT_BEDFNAM_COUNT_MARIX.format(oufprfx, celltypestr)
+        oufpath_matrix = os.path.join(outdir, oufn_matrix)
+        oufn_donors = FMT_FNAM_CELLNUM_TABLE.format(oufprfx, celltypestr)
+        oufpath_donors = os.path.join(outdir, oufn_donors)
         if count_matrix is None:
             sys.stderr.write("WARNING: no counts for celltype {:s}\n".format(celltypestr))
         else:
@@ -172,12 +174,16 @@ class DataHandover:
                 join = "inner" # only the genes that are annotated
                 )
             n_lines = len(anno_mt)
-            anno_mt.to_csv(oufn_matrix, sep = "\t")
-            sys.stderr.write("# {:d} lines written to file {:s} ...\n".format(n_lines, oufn_matrix))
+            anno_mt.to_csv(oufpath_matrix, sep = "\t")
+            sys.stderr.write("# {:d} lines written to file {:s} ...\n".format(n_lines, oufpath_matrix))
 
-        donor_df.to_csv(oufn_donor_table, sep = '\t')
-        sys.stderr.write("# {:d} lines written to file {:s} ...\n".format(len(donor_df), oufn_donor_table))
-        return n_lines, oufn_matrix, oufn_donor_table
+        donor_df.to_csv(oufpath_donors, sep = '\t')
+        sys.stderr.write("# {:d} lines written to file {:s} ...\n".format(len(donor_df), oufpath_donors))
+
+        n_donors = sum(donor_df["n_cells_qc_pass"] >= 0)
+        n_donors_with_min_n_cells = sum(donor_df["n_cells_qc_pass"] >= n_cells_min)
+
+        return n_lines, n_donors, n_donors_with_min_n_cells, oufn_matrix, oufn_donors,
 
 def set_argument_parser():
     parser = argparse.ArgumentParser(description="Aggregate gene/transcript counts over cells of one class/type.")
@@ -193,15 +199,20 @@ def set_argument_parser():
     parser.add_argument("--handover-data-dir", "-d", default = os.curdir,
                         help="Output directory of the Azimuth celltype-assignment pipeline.",
                         dest="datadir_handover")
-    parser.add_argument("--gene-ids-output-file", default = None,
-                        help="Output file for gene ids for which there was no annotation.",
-                        dest="oufn_gene_ids")
     parser.add_argument("--output-file-list", default = None,
-                        help="Write list of celltypes and corresponding ouput files.",
-                        dest="oufn_filelist")
+                        help="Write list of (filtered) celltypes and corresponding output files [CSV].",
+                        dest="oufn_filtered_file_lst")
     parser.add_argument("--output-file-prefix", default = 'aggrsce',
                         help="Prefix for output files.",
                         dest="oufn_prfx")
+    parser.add_argument(
+        "--minium-cell-number", "-c", type = int, default = int(0), dest="n_cells_min",
+        help="Minimum number of cells for donor to be included in analysis."
+        )
+    parser.add_argument(
+        "--minimum-donor-number", "-n", type = int, default = int(0), dest="n_donors_min",
+        help="Minimum number of donors with a number of cells at or above the threshold set by --minium-cell-number."
+        )
     return parser.parse_args()
 
 class TestArgs:
@@ -223,30 +234,55 @@ if __name__ == '__main__':
         for fp in os.listdir(args.datadir_handover):
             sys.stderr.write("-- ls: {}\n".format(fp))
 
-    if args.oufn_filelist:
-        oufh_flst = open(args.oufn_filelist, 'w')
-        oufh_flst.write(HEADER_OUFLST + '\n')
-    else:
-        oufh_flst = sys.sterr
+    oufn_unannotated_genes = os.path.join(args.outdir,'{:s}_{:s}'.format(args.oufn_prfx, FNAM_GENE_IDS))
+    oufn_file_list = os.path.join(args.outdir,'{:s}_{:s}'.format(args.oufn_prfx, FNAM_FILE_TABLE))
 
     dh = DataHandover()
     dh.load_file_table(args.datadir_handover, donor_only = True)
     dh.load_count_files()
     dh.add_gene_annotation(args.gene_annot_file)
-    if args.oufn_gene_ids:
-        dh.write_failed_gene_ids(os.path.join(args.outdir, args.oufn_gene_ids))
+    dh.write_unannotated_gene_ids(oufn_unannotated_genes)
+
     # print(celltypes)
     ctr = 0
     celltypes = ['all'] + list(dh.cell_types)
+    bed_file_lst = []
+    tsv_file_lst = []
+    n_donors_lst = []
+    n_donors_min_cells_lst = []
+
     for celltyp in celltypes:
-        sys.stderr.write("processing celltype '{:s}' ...\n".format(celltyp))
-        n_lines, oufn_matrix, oufn_donor_table = \
-        dh.aggregate_over_celltype(
-            celltyp,
-            outdir = args.outdir,
-            oufprfx = args.oufn_prfx
-            )
-        oufh_flst.write(f'{ctr}\t{celltyp}\t{oufn_matrix}\t{oufn_donor_table}\n')
         ctr += 1
+        sys.stderr.write("processing celltype '{:s}' ...\n".format(celltyp))
+        n_lines, n_donors, n_donors_with_min_n_cells, oufn_matrix, oufn_donor_table = \
+            dh.aggregate_over_celltype(
+                celltyp,
+                n_cells_min = args.n_cells_min,
+                outdir = args.outdir,
+                oufprfx = args.oufn_prfx
+                )
+        sys.stderr.write(f"# [{ctr}]\t{celltyp}\t{n_lines}\t{n_donors}"
+            f"\t{n_donors_with_min_n_cells}\t{oufn_matrix}\t{oufn_donor_table}\n")
+        bed_file_lst.append(oufn_matrix)
+        tsv_file_lst.append(oufn_donor_table)
+        n_donors_lst.append(n_donors)
+        n_donors_min_cells_lst.append(n_donors_with_min_n_cells)
+    celltype_df = pandas.DataFrame({
+        'celltype': celltypes,
+        'n_donors': n_donors_lst,
+        'n_donors_min_cells': n_donors_min_cells_lst,
+        'count_file': bed_file_lst,
+        'donor_file': tsv_file_lst})
+
+    celltype_df.to_csv(oufn_file_list, sep = '\t')
+    sys.stderr.write(f"# List of output file written to file {oufn_file_list}.\n")
+
+    if args.oufn_filtered_file_lst:
+        sel = celltype_df["n_donors_min_cells"] > args.n_donors_min
+        celltype_df[sel].to_csv(args.oufn_filtered_file_lst, columns = ["celltype", "count_file", "donor_file"], index = False)
+        sys.stderr.write("# Filtered list of {:d} celltype files written to file {:s}.\n"
+            .format(sum(sel), args.oufn_filtered_file_lst))
+        sys.stderr.write("# This list contains files for celltypes with at least {:d} donors"
+            " each having a minimum of {:d} QC'ed cells".format(args.n_donors_min, args.n_cells_min))
 
     exit(0)

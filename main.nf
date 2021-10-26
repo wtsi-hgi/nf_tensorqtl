@@ -34,6 +34,9 @@ params.gene_annotation = "/lustre/scratch123/hgi/projects/ukbb_scrna/pipelines/P
 params.minimum_cell_number = 5
 // minimum number of cells of a given cell-type donors must have to be included in eQTL analysis
 
+params.minimum_donor_number = 30
+// minimum number of donors, with at least params.minimum_cell_number each, a cell type must have to be included in eQTL analysis
+
 log.info """
 ============================================================================
   sceQTL analysis using linear models with tensorQTL ~ v${VERSION}
@@ -53,9 +56,10 @@ workflow {
     dSUM_aggregation(
       params.input_dir,
       params.gene_annotation,
-      params.minimum_cell_number
+      params.minimum_cell_number,
+      params.minimum_donor_number
     )
-    dSUM_aggregation.out.bed_and_tsv_files
+    dSUM_aggregation.out.aggrnorm_bed
     .view()
 }
 
