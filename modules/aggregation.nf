@@ -6,6 +6,7 @@ process aggregate_UMI_counts_total_sum {
     path(gene_annotation_file)
     val(n_cells_min)
     val(n_donors_min)
+    val(cis_window_pos)
 
   output:
     path("aggrsum_files.csv", emit:file_list_csv)
@@ -19,7 +20,8 @@ process aggregate_UMI_counts_total_sum {
       --output-file-prefix aggrsum \
       --output-file-list aggrsum_files.csv \
       --minium-cell-number ${n_cells_min} \
-      --minimum-donor-number ${n_donors_min}
+      --minimum-donor-number ${n_donors_min} \
+      --bed-cis-position-in-gene ${cis_window_pos}
   """
 }
 
@@ -49,12 +51,13 @@ process normalize_counts_TMM {
   """
 }
 
-workflow dSUM_aggregation {
+workflow aggregate_normalize_dSum {
   take:
     donor_file_dir
     gene_annotation_file
     n_cell_min
     n_cell_donor
+    cis_window_pos
     n_expression_pcs
 
   main:
@@ -62,7 +65,8 @@ workflow dSUM_aggregation {
       donor_file_dir,
       gene_annotation_file,
       n_cell_min,
-      n_cell_donor
+      n_cell_donor,
+      cis_window_pos
     )
     aggregate_UMI_counts_total_sum.out.file_list_csv
       .splitCsv(header: true)
@@ -77,4 +81,5 @@ workflow dSUM_aggregation {
     )
   emit:
     aggrnorm_bed = normalize_counts_TMM.out.norm_bed
+    expression_pcs_tsv = normalize_counts_TMM.out.pc_tsv
 }

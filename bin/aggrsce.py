@@ -25,7 +25,7 @@ FMT_FNAM_CELLNUM_TABLE = "{:s}_{:s}_ncells.tsv"
 FNAM_GENE_IDS = "gene_ids_without_annotation.txt"
 FNAM_FILE_TABLE = "celltype_files.tsv"
 
-
+CHRNAM_PREFIX_BED = 'chr'
 COUNT_MATRIX_COLUMN_DICT = {
     "chromosome": "#chr",
     "query_id": "gene_id"
@@ -111,6 +111,27 @@ class DataHandover:
 
         self.failed_gene_ids = self.check_gene_annot(self.gene_annot_df)
         return self.failed_gene_ids
+
+    def set_start_end_to_CIS_pos(self, ref = "mid"):
+        is_defined = False
+        if ref == 'mid':
+            # set start = end - 1 to gene mid-point
+            self.gene_annot_df["start"] = round(
+                (self.gene_annot_df["start"] + self.gene_annot_df["end"])/2
+                ).astype('int64')
+            is_defined = True
+        elif ref == 'start':
+            s = self.gene_annot_df["strand"] < 0 # start/end annotation is on forward strand
+            self.gene_annot_df["start"][s] = self.gene_annot_df["end"][s]
+            is_defined = True
+        elif ref == 'tss':
+            self.gene_annot_df["start"] = self.gene_annot_df["tss"]
+            is_defined = True
+        if is_defined:
+            self.gene_annot_df["end"] = self.gene_annot_df["start"] + 1
+        if not is_defined:
+            sys.stderr.write(f"WARNING: CIS reference point '{ref}' is not defined. BED start/end positions unchanged.\n")
+        return is_defined
 
     def _f_sum_over_celltype(self, ad, celltyp = 'all'):
         sv_qcpass = ad.obs['qc.filter.pass'] == 'True'
@@ -214,6 +235,11 @@ def set_argument_parser():
         "--minimum-donor-number", "-n", type = int, default = int(0), dest="n_donors_min",
         help="Minimum number of donors with a number of cells at or above the threshold set by --minium-cell-number."
         )
+    parser.add_argument(
+        "--bed-cis-position-in-gene", type = str, default = None, dest="cis_pos",
+        help="Set BED start = end + 1 to CIS midpoint [mid|start].'mid': middle of gene, 'start': (putative) transcription start site"
+        )
+
     return parser.parse_args()
 
 class TestArgs:
@@ -242,6 +268,8 @@ if __name__ == '__main__':
     dh.load_file_table(args.datadir_handover, donor_only = True)
     dh.load_count_files()
     dh.add_gene_annotation(args.gene_annot_file)
+    if args.cis_pos:
+        dh.set_start_end_to_CIS_pos(args.cis_pos)
     dh.write_unannotated_gene_ids(oufn_unannotated_genes)
 
     # print(celltypes)

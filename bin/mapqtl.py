@@ -15,17 +15,6 @@ import tensorqtl
 
 SEED = 123456
 
-def remove_chromosomes(pheno_pos_df, chromnams):
-    s_tot = None
-    for chrnam in pandas.Categorical(pheno_pos_df["chr"].values).categories:
-        if chrnam in chromnams:
-            s = pheno_pos_df["chr"] == chrnam
-            if s_tot is None:
-                s_tot = s
-            else:
-                s_tot = s_tot | s
-
-
 def set_argument_parser():
     parser = argparse.ArgumentParser(description="Map eQTL with linear models in tensorQTL.")
 
@@ -49,6 +38,12 @@ def set_argument_parser():
                         help='Cis-window size, in bases. Default: 1000000.')
     parser.add_argument('--seed', default=None, type=int,
                         help='Seed for permutations.')
+    parser.add_argument('--fdr', default=float(0.05), type=float, help='FDR for cis-QTLs')
+    parser.add_argument('--qvalue_lambda', default=None, type=float, help='lambda parameter for pi0est in qvalue.')
+    parser.add_argument(
+        "--cis-window-position", default="mid", dest="cis_win_pos",
+        help="Position of CIS window in gene [mid|tss]. mid: mid-point of annotated gene. tss: transcription start site."
+    )
     return parser.parse_args()
 
 class TestArgs:
@@ -62,6 +57,9 @@ class TestArgs:
         self.output_dir = os.curdir
         self.seed = SEED
         self.window = 1000000
+        self.fdr = 0.05
+        self.qvalue_lambda = None
+        self.cis_win_pos = 'mid'
 
 if __name__ == '__main__':
     print(sys.path)
@@ -86,6 +84,7 @@ if __name__ == '__main__':
     # load inputs
     logger.write(f'  * reading phenotypes ({args.gene_expression_bed})')
     pheno_df, pheno_pos_df = tensorqtl.read_phenotype_bed(args.gene_expression_bed)
+    # read_phenotype_bed() expects gzipped BED file with start = end - 1 defining the centre of the CIS window
 
     logger.write(f'  * reading covariates ({args.genotype_pcs_plink})')
     cov_gt_df = pandas.read_csv(args.genotype_pcs_plink, sep='\t', index_col=1).drop('#FID', axis=1)
@@ -138,6 +137,7 @@ if __name__ == '__main__':
         logger = logger,
         seed=args.seed
         )
+    tensorqtl.post.calculate_qvalues(cis_df, fdr=args.fdr, qvalue_lambda=args.qvalue_lambda, logger=logger)
     out_file = os.path.join(args.output_dir, args.oufn_prfx+'.cis_qtl.txt.gz')
     cis_df.to_csv(out_file, sep='\t', float_format='%.6g')
 
