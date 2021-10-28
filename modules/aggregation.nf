@@ -28,15 +28,24 @@ process normalize_counts_TMM {
     tuple val(celltype), val(counts_bed), val(donor_tsv)
     path(data_dir)
     val(n_cell_min)
+    val(n_prcmp)
 
   output:
-    path("${outfn}.gz", emit:norm_bed)
+    path("${outprfx}_chrAll.bed.gz", emit:norm_bed)
+    path("${outprfx}_PC${npcs}.tsv", emit:pc_tsv) optional true
 
   script:
-    outfn = "norm" + "${counts_bed}".minus(".bed.gz") + "_chrAll.bed"
+    outprfx = "norm" + "${counts_bed}".minus(".bed.gz")
+
+    //only calculate PCs for pseudo-bulk sample
+    if ("${celltype}" == "all") {
+      npcs = "${n_prcmp}"
+    } else {
+      npcs = "0" // signals not to attempt PC caculations
+    }
   """
-    dSumTMM.R ${data_dir}/${counts_bed} ${data_dir}/${donor_tsv} ${n_cell_min}
-    gzip ${outfn}
+    dSumTMM.R ${data_dir}/${counts_bed} ${data_dir}/${donor_tsv} ${n_cell_min} ${npcs}
+    gzip ${outprfx}_chrAll.bed
   """
 }
 
@@ -46,6 +55,7 @@ workflow dSUM_aggregation {
     gene_annotation_file
     n_cell_min
     n_cell_donor
+    n_expression_pcs
 
   main:
     aggregate_UMI_counts_total_sum (
@@ -62,7 +72,8 @@ workflow dSUM_aggregation {
     normalize_counts_TMM(
       ch_celltype_files,
       aggregate_UMI_counts_total_sum.out.output_dir,
-      n_cell_min
+      n_cell_min,
+      n_expression_pcs
     )
   emit:
     aggrnorm_bed = normalize_counts_TMM.out.norm_bed

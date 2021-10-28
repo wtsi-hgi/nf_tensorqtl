@@ -174,14 +174,15 @@ class DataHandover:
                 join = "inner" # only the genes that are annotated
                 )
             n_lines = len(anno_mt)
-            anno_mt.to_csv(oufpath_matrix, sep = "\t")
+            anno_mt.to_csv(oufpath_matrix, sep = "\t", index=False)
             sys.stderr.write("# {:d} lines written to file {:s} ...\n".format(n_lines, oufpath_matrix))
 
+        donor_df.insert(donor_df.shape[1], "is_included", donor_df["n_cells_qc_pass"] >= n_cells_min)
         donor_df.to_csv(oufpath_donors, sep = '\t')
         sys.stderr.write("# {:d} lines written to file {:s} ...\n".format(len(donor_df), oufpath_donors))
 
-        n_donors = sum(donor_df["n_cells_qc_pass"] >= 0)
-        n_donors_with_min_n_cells = sum(donor_df["n_cells_qc_pass"] >= n_cells_min)
+        n_donors = donor_df.shape[0]
+        n_donors_with_min_n_cells = sum(donor_df["is_included"])
 
         return n_lines, n_donors, n_donors_with_min_n_cells, oufn_matrix, oufn_donors,
 

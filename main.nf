@@ -37,6 +37,9 @@ params.minimum_cell_number = 5
 params.minimum_donor_number = 30
 // minimum number of donors, with at least params.minimum_cell_number each, a cell type must have to be included in eQTL analysis
 
+params.expression_prcmp_num = 10
+// number of principal components to use for expression vectors
+
 log.info """
 ============================================================================
   sceQTL analysis using linear models with tensorQTL ~ v${VERSION}
@@ -57,7 +60,8 @@ workflow {
       params.input_dir,
       params.gene_annotation,
       params.minimum_cell_number,
-      params.minimum_donor_number
+      params.minimum_donor_number,
+      params.expression_prcmp_num
     )
     dSUM_aggregation.out.aggrnorm_bed
     .view()
