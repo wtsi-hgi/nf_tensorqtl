@@ -116,9 +116,8 @@ class DataHandover:
         is_defined = False
         if ref == 'mid':
             # set start = end - 1 to gene mid-point
-            self.gene_annot_df["start"] = round(
-                (self.gene_annot_df["start"] + self.gene_annot_df["end"])/2
-                ).astype('int64')
+            self.gene_annot_df["start"] = \
+                ((self.gene_annot_df["start"] + self.gene_annot_df["end"])/2).round().astype('int64')
             is_defined = True
         elif ref == 'start':
             s = self.gene_annot_df["strand"] < 0 # start/end annotation is on forward strand

@@ -9,8 +9,9 @@ process run_tensorqtl {
     path(plink_files_dir)
     val(plink_files_prefix)
 
-  """
+  script:
   oufnprfx = "${aggrnorm_counts_bed}".minus("_counts_chrAll.bed.gz")
+  """
   mapqtl.py \
     --gene-expression-bed ${aggrnorm_counts_bed} \
     --genotype-plink-prefix ${plink_files_dir}/${plink_files_prefix} \
