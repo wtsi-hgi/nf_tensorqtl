@@ -56,7 +56,7 @@ workflow aggregate_normalize_dSum {
     donor_file_dir
     gene_annotation_file
     n_cell_min
-    n_cell_donor
+    n_donor_min
     cis_window_pos
     n_expression_pcs
 
@@ -65,7 +65,7 @@ workflow aggregate_normalize_dSum {
       donor_file_dir,
       gene_annotation_file,
       n_cell_min,
-      n_cell_donor,
+      n_donor_min,
       cis_window_pos
     )
     aggregate_UMI_counts_total_sum.out.file_list_csv
