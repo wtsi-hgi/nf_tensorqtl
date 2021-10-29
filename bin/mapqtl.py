@@ -108,6 +108,11 @@ if __name__ == '__main__':
     plink_chromosome_names = set(pandas.Categorical(variant_df["chrom"].values).categories)
     phenotype_chromosome_names = set(pandas.Categorical(pheno_pos_df["chr"].values).categories)
     common_chromosome_names = plink_chromosome_names & phenotype_chromosome_names
+    if len(common_chromosome_names) < 1:
+        logger.write(
+            "ERROR: There are no common chromosome names between the PLINK genotypes"
+            " and the gene annotation.\n"
+            )
     print("common chromosome names:", common_chromosome_names)
     # remove X,Y-chromosome
     # all chromosomes must be present in variant_df !
