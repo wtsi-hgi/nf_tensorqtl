@@ -1,6 +1,9 @@
 #!/usr/bin/env nextflow
 
 process aggregate_UMI_counts_total_sum {
+  publishDir  path: "${outdir}",
+              overwrite: "true"
+
   input:
     path(donor_file_dir) // lists input files per donor
     path(gene_annotation_file)
@@ -13,6 +16,7 @@ process aggregate_UMI_counts_total_sum {
     path("aggrsum_output", emit:output_dir)
 
   script:
+  outdir = "${launchDir}/" + params.output_dir
   """
     aggrsce.py --handover-data-dir ${donor_file_dir} \
       --gene-annotations ${gene_annotation_file} \
@@ -26,6 +30,9 @@ process aggregate_UMI_counts_total_sum {
 }
 
 process normalize_counts_TMM {
+  publishDir  path: "${outdir}",
+              overwrite: "true"
+
   input:
     tuple val(celltype), val(counts_bed), val(donor_tsv)
     path(data_dir)
@@ -37,6 +44,7 @@ process normalize_counts_TMM {
     path("${outprfx}_PC${npcs}.tsv", emit:pc_tsv) optional true
 
   script:
+    outdir = "${launchDir}/" + params.output_dir
     outprfx = "norm" + "${counts_bed}".minus(".bed.gz")
 
     //only calculate PCs for pseudo-bulk sample

@@ -77,6 +77,9 @@ GENE: while (<$infh>) {
     my $xrefs = $gene->get_all_DBEntries();
     my ($gen_symbol, $synonyms) = getHGNCfromDBEntries($xrefs);
     #print $oufh "$ensid\t$gen_symbol";
+    if ($chr =~ /^[1-9,X,Y]$/ || $chr =~ /^1[1-9]/ || $chr =~ /^2[12]/ || $chr == 'MT') {
+        $chr = 'chr'.$chr
+    }
     print $oufh "$genenam\t$ensid\t$gen_id\t$chrnam\t$start\t$end\t$strand\t$gen_symbol";
     foreach my $id (@{$synonyms}) {
 	     print $oufh "\t$id";

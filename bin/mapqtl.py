@@ -12,6 +12,8 @@ import numpy
 import pandas
 import tensorqtl
 
+sys.path.insert(1, os.path.dirname(__file__))
+from post import calculate_qvalues
 
 SEED = 123456
 
@@ -142,8 +144,12 @@ if __name__ == '__main__':
         logger = logger,
         seed=args.seed
         )
-    tensorqtl.post.calculate_qvalues(cis_df, fdr=args.fdr, qvalue_lambda=args.qvalue_lambda, logger=logger)
-    out_file = os.path.join(args.output_dir, args.oufn_prfx+'.cis_qtl.txt.gz')
+    out_file = os.path.join(args.output_dir, args.oufn_prfx+'.cis_qtl.tsv.gz')
     cis_df.to_csv(out_file, sep='\t', float_format='%.6g')
+
+    calculate_qvalues(cis_df, fdr=args.fdr, qvalue_lambda=args.qvalue_lambda, logger=logger)
+
+    out_file_qval = os.path.join(args.output_dir, args.oufn_prfx+'.cis_qtl_qval.tsv.gz')
+    cis_df.to_csv(out_file_qval, sep='\t', float_format='%.6g')
 
     sys.exit(0)

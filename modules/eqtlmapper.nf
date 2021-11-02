@@ -3,19 +3,27 @@
 process run_tensorqtl {
   label 'gpu'
 
+  publishDir  path: "${outdir}",
+              overwrite: "true"
+
   input:
     path(aggrnorm_counts_bed)
     path(genotype_pcs_tsv)
     path(plink_files_dir)
     val(plink_files_prefix)
 
+  output:
+    path("mapqtl_${oufnprfx}_*.cis_qtl.tsv.gz"), emit: qtl_tsv
+    path("mapqtl_${oufnprfx}_*.cis_qtl_qval.tsv.gz"), emit: qtl_qval_tsv
+
   script:
+  outdir = "${launchDir}/" + params.output_dir
   oufnprfx = "${aggrnorm_counts_bed}".minus("_counts_chrAll.bed.gz")
   """
   mapqtl.py \
     --gene-expression-bed ${aggrnorm_counts_bed} \
     --genotype-plink-prefix ${plink_files_dir}/${plink_files_prefix} \
-    --genotype-pcs-plink ${genotype_pcs_tsv}
+    --genotype-pcs-plink ${genotype_pcs_tsv} \
     --output-prefix mapqtl_${oufnprfx}
   """
 }

@@ -54,6 +54,8 @@ params.cis_window_pos = "mid"
 params.expression_prcmp_num = 10
 // number of principal components to use for expression vectors
 
+params.output_dir = "results"
+// output directory relative to ${launchDir}
 log.info """
 ============================================================================
   sceQTL analysis using linear models with tensorQTL ~ v${VERSION}
