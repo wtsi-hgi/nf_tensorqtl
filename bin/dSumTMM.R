@@ -9,15 +9,18 @@ DEBUG = TRUE
 
 DEFAULT_MIN_CELLS_PER_DONOR <- 5 # remove samples with fewer than this number of cells
 DEFAULT_NUM_PCS_WRITTEN <- 20 # number of principal components to write out
-COLUMN_GENE_ID <- 4
+#COLUMN_GENE_ID <- 4
 VARIANCE_ZERO <- 10e-7
 
 library(edgeR)
 
-write.singleBED <- function(df, oufn = "test.bed")
+write.singleBED <- function(df, oufn = "test.bed.gz")
 {
-  names(df)[1] <- "#chr"
-  write.table(df, file = oufn, sep = "\t", row.names = FALSE, quote = FALSE)
+  # names(df)[1] <- "gene_id"
+  oufh = gzfile(oufn, 'wt')
+  write.table(df, file = oufh, sep = "\t", row.names = T, quote = FALSE)
+  flush(oufh)
+  close(oufh)
   cat ("Wrote normalised counts to file '", oufn, "' ...\n", sep="")
 }
 
@@ -27,10 +30,10 @@ write.perChrBED <- function(df, dirnam)
   dl <- split(df, chrnams)
   for (cn in levels(chrnams)) {
     cat("chromosome: ", cn, "\n")
-    oufpath = file.path(dirnam, paste0(dirnam, "_", cn, ".bed"))
+    oufpath = file.path(dirnam, paste0(dirnam, "_", cn, ".bed.gz"))
     cat(oufpath, "\n")
     dd <- dl[[cn]]
-    write.singleBED(dl[[cn]])
+    write.singleBED(dl[[cn]], oufn = oufpath)
   }
 }
 
@@ -39,7 +42,8 @@ write.principal.components <- function(df, dirnam, n.pcs = DEFAULT_NUM_PCS_WRITT
   oufn <- paste0(dirnam, "_PC", n.pcs, ".tsv")
   cat("writing file", oufn, "...\n")
   n_donors <- dim(df)[2]
-  m <- t(df[,(COLUMN_GENE_ID+1):n_donors])
+  #m <- t(df[,(COLUMN_GENE_ID+1):n_donors])
+  m <- t(df)
   # remove zero-variance columns
   vv <- apply(m,2,var)
   z.v = vv < VARIANCE_ZERO
@@ -60,7 +64,7 @@ write.principal.components <- function(df, dirnam, n.pcs = DEFAULT_NUM_PCS_WRITT
 
 normalise.dSumTMM <- function(phenotype.bed.file, donor.tsv.file, min.cells.per.donor = 5)
 {
-  #oufnprfx <- sub("\\.bed$", "", phenotype.bed.file)
+  #oufnprfx <- sub("\\.bed.gz$", "", phenotype.bed.file)
 
   # read table with the number of cells per donor
   df.donors <- read.delim(donor.tsv.file, row.names = NULL, quote = "")
@@ -82,12 +86,13 @@ normalise.dSumTMM <- function(phenotype.bed.file, donor.tsv.file, min.cells.per.
   # data.frame("donor_id" = df.donors$donor_id, "is.included" = sel.v)
   sample.names.included <- df.donors$donor_id[s1.v & s2.v]
 
-  dat.counts <- read.delim(phenotype.bed.file, row.names = NULL, quote = "")
-  row.names(dat.counts) <- dat.counts[,COLUMN_GENE_ID]
-
+  #dat.counts <- read.delim(phenotype.bed.file, row.names = NULL, quote = "")
+  #row.names(dat.counts) <- dat.counts[,COLUMN_GENE_ID]
+  dat.counts <- read.delim(phenotype.bed.file, row.names = 1, quote = "")
 
   n_cols = dim(dat.counts)[2]
-  dm <- as.matrix(dat.counts[,(COLUMN_GENE_ID+1):n_cols])
+  #dm <- as.matrix(dat.counts[,(COLUMN_GENE_ID+1):n_cols])
+  dm <- as.matrix(dat.counts)
 
   ## subset matrix to remove donors which fewer than MIN_CELLS_PER_DONOR cells
   dm <- dm[,as.vector(sample.names.included)]
@@ -121,7 +126,8 @@ normalise.dSumTMM <- function(phenotype.bed.file, donor.tsv.file, min.cells.per.
   }
 
   list(
-    "data" = cbind(dat.counts[sv.nonzero.genes,1:COLUMN_GENE_ID], as.data.frame(m.logcpm)),
+    # "data" = cbind(dat.counts[sv.nonzero.genes,1:COLUMN_GENE_ID], as.data.frame(m.logcpm)),
+    "data" = as.data.frame(m.logcpm),
     "donors" = data.frame("donor.id" = donor.names.in, "is.norm" =  donor.names.in %in% donor.names.out)
     )
 }
@@ -173,7 +179,7 @@ if (n.pcs > 0) {
 if (output_is_perChr) {
   write.perChrBED(df.norm$data, dirnam)
 } else {
-  write.singleBED(df.norm$data, oufn = paste0(dirnam, "_chrAll.bed"))
+  write.singleBED(df.norm$data, oufn = paste0(dirnam, "_chrAll.bed.gz"))
 }
 
 # output table of donor input names and whether or not they are included in

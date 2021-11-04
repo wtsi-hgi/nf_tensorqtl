@@ -6,7 +6,6 @@ process aggregate_UMI_counts_total_sum {
 
   input:
     path(donor_file_dir) // lists input files per donor
-    path(gene_annotation_file)
     val(n_cells_min)
     val(n_donors_min)
     val(cis_window_pos)
@@ -19,7 +18,6 @@ process aggregate_UMI_counts_total_sum {
   outdir = "${launchDir}/" + params.output_dir
   """
     aggrsce.py --handover-data-dir ${donor_file_dir} \
-      --gene-annotations ${gene_annotation_file} \
       --output-dir aggrsum_output \
       --output-file-prefix aggrsum \
       --output-file-list aggrsum_files.csv \
@@ -55,14 +53,12 @@ process normalize_counts_TMM {
     }
   """
     dSumTMM.R ${data_dir}/${counts_bed} ${data_dir}/${donor_tsv} ${n_cell_min} ${npcs}
-    gzip ${outprfx}_chrAll.bed
   """
 }
 
 workflow aggregate_normalize_dSum {
   take:
     donor_file_dir
-    gene_annotation_file
     n_cell_min
     n_donor_min
     cis_window_pos
@@ -71,7 +67,6 @@ workflow aggregate_normalize_dSum {
   main:
     aggregate_UMI_counts_total_sum (
       donor_file_dir,
-      gene_annotation_file,
       n_cell_min,
       n_donor_min,
       cis_window_pos

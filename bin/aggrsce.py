@@ -187,14 +187,18 @@ class DataHandover:
         if count_matrix is None:
             sys.stderr.write("WARNING: no counts for celltype {:s}\n".format(celltypestr))
         else:
-            anno_mt = pandas.concat(
-                [dh.gene_annot_df[["chromosome", "start", "end", "query_id"]].rename(COUNT_MATRIX_COLUMN_DICT, axis = 1),
-                count_matrix.T],
-                axis = 1,
-                join = "inner" # only the genes that are annotated
-                )
+            if self.gene_annot_df:
+                anno_mt = pandas.concat(
+                    [dh.gene_annot_df[["chromosome", "start", "end", "query_id"]].rename(COUNT_MATRIX_COLUMN_DICT, axis = 1),
+                    count_matrix.T],
+                    axis = 1,
+                    join = "inner" # only the genes that are annotated
+                    )
+            else:
+                # no gene annotation
+                anno_mt = count_matrix.T
             n_lines = len(anno_mt)
-            anno_mt.to_csv(oufpath_matrix, sep = "\t", index=False)
+            anno_mt.to_csv(oufpath_matrix, sep = "\t", index=self.gene_annot_df is None)
             sys.stderr.write("# {:d} lines written to file {:s} ...\n".format(n_lines, oufpath_matrix))
 
         donor_df.insert(donor_df.shape[1], "is_included", donor_df["n_cells_qc_pass"] >= n_cells_min)
@@ -214,7 +218,7 @@ def set_argument_parser():
         help="output directory",
         dest="outdir")
 
-    parser.add_argument("--gene-annotations", required = True,
+    parser.add_argument("--gene-annotations", required = False, default = None,
                         help="EnsEMBL/BioMart file of gene annotations [TSV]",
                         dest="gene_annot_file")
     parser.add_argument("--handover-data-dir", "-d", default = os.curdir,
@@ -266,10 +270,11 @@ if __name__ == '__main__':
     dh = DataHandover()
     dh.load_file_table(args.datadir_handover, donor_only = True)
     dh.load_count_files()
-    dh.add_gene_annotation(args.gene_annot_file)
-    if args.cis_pos:
-        dh.set_start_end_to_CIS_pos(args.cis_pos)
-    dh.write_unannotated_gene_ids(oufn_unannotated_genes)
+    if args.gene_annot_file is not None:
+        dh.add_gene_annotation(args.gene_annot_file)
+        if args.cis_pos:
+            dh.set_start_end_to_CIS_pos(args.cis_pos)
+        dh.write_unannotated_gene_ids(oufn_unannotated_genes)
 
     # print(celltypes)
     ctr = 0

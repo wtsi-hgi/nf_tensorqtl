@@ -36,9 +36,9 @@ params.gene_annotation = "/lustre/scratch123/hgi/projects/ukbb_scrna/pipelines/P
 // ENSG00000186092	ENSG00000186092	ENSG00000186092	chr1	65419	71585	1	OR4F5
 // ...
 
-params.plink_dir = "/lustre/scratch123/hgi/projects/ukbb_scrna/eval/groningen/"
+params.plink_dir = "/lustre/scratch123/hgi/projects/ukbb_scrna/eval/groningen/genotypes"
 params.plink_filnam_prefix = "franke_gt_plink_bed"
-params.genotype_pcs_tsvfile = "/lustre/scratch123/hgi/projects/ukbb_scrna/eval/groningen/franke_gtpca.tsv"
+params.genotype_pcs_tsvfile = "/lustre/scratch123/hgi/projects/ukbb_scrna/eval/groningen/genotypes/franke_gtpca.tsv"
 
 params.minimum_cell_number = 5
 // minimum number of cells of a given cell-type donors must have to be included in eQTL analysis
@@ -54,8 +54,6 @@ params.cis_window_pos = "mid"
 params.expression_prcmp_num = 10
 // number of principal components to use for expression vectors
 
-params.output_dir = "results"
-// output directory relative to ${launchDir}
 log.info """
 ============================================================================
   sceQTL analysis using linear models with tensorQTL ~ v${VERSION}
@@ -74,7 +72,6 @@ workflow {
 
     aggregate_normalize_dSum(
       params.input_dir,
-      params.gene_annotation,
       params.minimum_cell_number,
       params.minimum_donor_number,
       params.cis_window_pos,
@@ -83,10 +80,11 @@ workflow {
     //aggregate_normalize_dSum.out.aggrnorm_bed
     //.view()
     aggregate_normalize_dSum.out.expression_pcs_tsv
-    .view()
+     .view()
 
     map_eqtl(
       aggregate_normalize_dSum.out.aggrnorm_bed,
+      params.gene_annotation,
       params.genotype_pcs_tsvfile,
       params.plink_dir,
       params.plink_filnam_prefix
