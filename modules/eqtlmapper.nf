@@ -15,8 +15,8 @@ process run_tensorqtl {
 
   output:
     path("mapqtl_${oufnprfx}.cis_eqtl.tsv.gz"), emit: qtl_tsv
-    path("mapqtl_${oufnprfx}.cis_eqtl_dropped.tsv.gz"), emit: qtl_dropped_tsv
-    path("mapqtl_${oufnprfx}.cis_eqtl_qval.tsv.gz"), emit: qtl_qval
+    path("mapqtl_${oufnprfx}.cis_eqtl_dropped.tsv.gz"), emit: dropped_tsv
+    path("mapqtl_${oufnprfx}.cis_eqtl_qval.tsv.gz"), emit: qval_tsv
     //path("mapqtl_${oufnprfx}.bin.gz"), emit: qtl_bin
 
   script:
@@ -44,7 +44,7 @@ process add_qvalues {
 
   script:
     outdir = "${launchDir}/" + params.output_dir
-    oufnam = "${cis_qtl_tsv}".minus(".tsv.gz") + "_qval.tsv.gz"
+    oufnam = "${cis_qtl_tsv}".minus(".tsv.gz") + "_qvalR.tsv.gz"
   """
   qval.R ${cis_qtl_tsv} ${oufnam}
   """
@@ -67,7 +67,7 @@ workflow map_eqtl {
       plink_prefix
     )
     add_qvalues(
-      run_tensorqtl.out.qtl_tsv
+      run_tensorqtl.out.qval_tsv
     )
   emit:
     cis_qtl_tsvfile = add_qvalues.out.cis_qtl_qval_tsv
