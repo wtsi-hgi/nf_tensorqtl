@@ -3,8 +3,9 @@
 
 FROM nvidia/cuda:10.2-cudnn7-runtime-ubuntu18.04
 
-RUN apt-get update && apt-get install -y software-properties-common && \
-    apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y \
+        apt-utils \
+        software-properties-common \
         apt-transport-https \
         build-essential \
         cmake \
@@ -21,23 +22,32 @@ RUN apt-get update && apt-get install -y software-properties-common && \
         unzip \
         wget \
         zlib1g-dev \
+        libatlas-base-dev \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     apt-get clean && \
     apt-get autoremove -y && \
-    rm -rf /var/lib/{apt,dpkg,cache,log}/
+    rm -rf /var/lib/{apt,dpkg,cache,log}
 
+WORKDIR /opt
 # htslib
-RUN cd /opt && \
-    wget --no-check-certificate https://github.com/samtools/htslib/releases/download/1.10.2/htslib-1.10.2.tar.bz2 && \
+RUN wget --no-check-certificate https://github.com/samtools/htslib/releases/download/1.10.2/htslib-1.10.2.tar.bz2 && \
     tar -xf htslib-1.10.2.tar.bz2 && rm htslib-1.10.2.tar.bz2 && cd htslib-1.10.2 && \
     ./configure --enable-libcurl --enable-s3 --enable-plugins --enable-gcs && \
     make && make install && make clean
 
 # bcftools
-RUN cd /opt && \
-    wget --no-check-certificate https://github.com/samtools/bcftools/releases/download/1.10.2/bcftools-1.10.2.tar.bz2 && \
+RUN wget --no-check-certificate https://github.com/samtools/bcftools/releases/download/1.10.2/bcftools-1.10.2.tar.bz2 && \
     tar -xf bcftools-1.10.2.tar.bz2 && rm bcftools-1.10.2.tar.bz2 && cd bcftools-1.10.2 && \
     ./configure --with-htslib=system && make && make install && make clean
+
+# PLINK2
+# PLINK2 needs zstd>=1.4.4 which is not available via apt-get
+RUN wget --no-check-certificate https://github.com/facebook/zstd/archive/refs/tags/v1.5.0.tar.gz && \
+tar zxvf v1.5.0.tar.gz && rm v1.5.0.tar.gz && cd zstd-1.5.0 && make && make install && make clean
+
+https://github.com/chrchang/plink-ng/archive/refs/tags/v2.00a2.3.zip
+RUN wget --no-check-certificate https://github.com/chrchang/plink-ng/archive/refs/heads/master.zip && \
+  unzip master.zip && rm master.zip && cd plink-ng-master/2.0 && make DESTDIR=/ && make install && make clean
 
 # install R
 ENV DEBIAN_FRONTEND noninteractive
@@ -52,8 +62,9 @@ RUN pip3 install --upgrade pip setuptools
 RUN pip3 install numpy pandas scipy anndata
 RUN pip3 install pandas-plink ipython jupyter matplotlib pyarrow torch rpy2 gcsfs
 
-RUN cd /opt && \
-    wget https://github.com/broadinstitute/tensorqtl/archive/v1.0.6.tar.gz && \
+RUN wget https://github.com/broadinstitute/tensorqtl/archive/v1.0.6.tar.gz && \
     tar -xf v1.0.6.tar.gz && mv tensorqtl-1.0.6 tensorqtl && \
     rm v1.0.6.tar.gz
 RUN pip3 install -e /opt/tensorqtl/
+
+WORKDIR /
