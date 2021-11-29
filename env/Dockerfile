@@ -45,9 +45,9 @@ RUN wget --no-check-certificate https://github.com/samtools/bcftools/releases/do
 RUN wget --no-check-certificate https://github.com/facebook/zstd/archive/refs/tags/v1.5.0.tar.gz && \
 tar zxvf v1.5.0.tar.gz && rm v1.5.0.tar.gz && cd zstd-1.5.0 && make && make install && make clean
 
-https://github.com/chrchang/plink-ng/archive/refs/tags/v2.00a2.3.zip
+# https://github.com/chrchang/plink-ng/archive/refs/tags/v2.00a2.3.zip
 RUN wget --no-check-certificate https://github.com/chrchang/plink-ng/archive/refs/heads/master.zip && \
-  unzip master.zip && rm master.zip && cd plink-ng-master/2.0 && make DESTDIR=/ && make install && make clean
+  unzip master.zip && rm master.zip && cd plink-ng-master/2.0 && make && make install DESTDIR= && make clean
 
 # install R
 ENV DEBIAN_FRONTEND noninteractive

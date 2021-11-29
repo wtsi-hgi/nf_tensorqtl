@@ -9,6 +9,7 @@ include {
 } from "./modules/aggregation.nf"
 
 include {
+  prep_genotypes;
   map_eqtl;
 } from "./modules/eqtlmapper.nf"
 
@@ -36,9 +37,7 @@ params.gene_annotation = "/lustre/scratch123/hgi/projects/ukbb_scrna/pipelines/P
 // ENSG00000186092	ENSG00000186092	ENSG00000186092	chr1	65419	71585	1	OR4F5
 // ...
 
-params.plink_dir = "/lustre/scratch123/hgi/projects/ukbb_scrna/eval/groningen/genotypes"
-params.plink_filnam_prefix = "franke_gt_plink_bed"
-params.genotype_pcs_tsvfile = "/lustre/scratch123/hgi/projects/ukbb_scrna/eval/groningen/genotypes/franke_gtpca.tsv"
+params.genotype_vcf = "/lustre/scratch123/hgi/projects/ukbb_scrna/eval/groningen/genotypes/franke_gt.vcf"
 
 params.minimum_cell_number = 5
 // minimum number of cells of a given cell-type donors must have to be included in eQTL analysis
@@ -70,6 +69,10 @@ workflow {
       test
     """.stripIndent()
 
+    prep_genotypes(
+      params.genotype_vcf
+    )
+
     aggregate_normalize_dSum(
       params.input_dir,
       params.minimum_cell_number,
@@ -85,9 +88,8 @@ workflow {
     map_eqtl(
       aggregate_normalize_dSum.out.aggrnorm_bed,
       params.gene_annotation,
-      params.genotype_pcs_tsvfile,
-      params.plink_dir,
-      params.plink_filnam_prefix
+      prep_genotypes.out.plink_genotype_pcs_tsv,
+      prep_genotypes.out.plink_files
     )
 }
 
