@@ -11,9 +11,9 @@ process prep_plink_files_from_genotype_vcf {
     plink_bed_fnprfx = "${genotype_vcf}".minus('.vcf.gz').plus('_plink_bed')
     // plink2 --memory argument interpreted as MiB
     """
-    plink2 --make-pgen --sort-vars --max-alleles 2 --vcf ${genotype_vcf} --out tmp_gt_plink
-    plink2 --make-pgen --sort-vars --threads ${task.cpus} --pfile tmp_gt_plink --out tmp_gt_plink_srt
-    plink2 --make-bed --output-chr chrM --pfile tmp_gt_plink_srt --snps-only --out ${plink_bed_fnprfx}
+      plink2 --make-pgen --max-alleles 2 --vcf ${genotype_vcf} --out tmp_gt_plink
+      plink2 --make-pgen --sort-vars --memory ${task.memory} --threads ${task.cpus} --pfile tmp_gt_plink --out tmp_gt_plink_srt
+      plink2 --make-bed --output-chr chrM --pfile tmp_gt_plink_srt --snps-only --out ${plink_bed_fnprfx}
     """
 }
 
@@ -83,6 +83,26 @@ process add_qvalues {
   """
 }
 
+process plot_rank_comparison {
+
+  publishDir  path: "${outdir}",
+              overwrite: "true"
+
+  input:
+    path(cis_qtl_qval_tsv)
+    path(cis_qtl_ref_csv)
+
+  output:
+    path("${plotfnout}*", emit: plotfiles)
+
+  script:
+    outdir = "${launchDir}/" + params.output_dir
+    plotfnout = "${cis_qtl_qval_tsv}".minus(".tsv.gz").plus("plot")
+    """
+    plotQval.py ${cis_qtl_ref_csv} ${cis_qtl_qval_tsv} ${plotfnout}
+    """
+}
+
 workflow prep_genotypes {
   take:
     genotype_vcf
@@ -105,6 +125,7 @@ workflow map_eqtl {
     gene_annotation_tsvfile
     genotpcs_tsvfile
     plink_files
+    eqtl_reference_csvfile
 
   main:
     run_tensorqtl(
@@ -115,6 +136,10 @@ workflow map_eqtl {
     )
     add_qvalues(
       run_tensorqtl.out.qval_tsv
+    )
+    plot_rank_comparison(
+      add_qvalues.out.cis_qtl_qval_tsv,
+      eqtl_reference_csvfile
     )
   emit:
     cis_qtl_tsvfile = add_qvalues.out.cis_qtl_qval_tsv

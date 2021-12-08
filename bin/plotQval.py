@@ -76,7 +76,10 @@ def make_rank_plots(mf, fnam):
     axes[0,1].plot(y, label='tensorQTL')
     axes[0,1].set_title("ranks of gene associations")
     axes[0,1].legend()
-    axes[1,1].plot(m)
+
+
+    axes[1,1].plot(x, label='franke')
+    axes[1,1].plot(y, label='tensorQTL')
     axes[1,1].set_xlabel('franke')
     axes[1,1].axis([0, xmax, 0, xmax])
 
@@ -88,7 +91,7 @@ if __name__ == '__main__':
     nargs = len(sys.argv)
 
     if nargs != 4:
-        sys.exit("usage: {:s} <ref QTL table [CSV]> <new QTL table [tsv]> <plot filename [w/o extension]>".format(argv[0]))
+        sys.exit("usage: {:s} <ref QTL table [CSV]> <new QTL table [TSV]> <plot filename [w/o extension]>".format(argv[0]))
 
     fnreftab = sys.argv[1]
     fnqtltab = sys.argv[2]

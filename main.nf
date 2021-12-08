@@ -53,12 +53,16 @@ params.cis_window_pos = "mid"
 params.expression_prcmp_num = 10
 // number of principal components to use for expression vectors
 
+params.eqtl_reference_csvfile = "/lustre/scratch123/hgi/projects/ukbb_scrna/eval/groningen/comparison/franke_table2_41588_2018_89_MOESM4_ESM.csv"
+// reference table of cis-eQTLs for comparison of results
+
 log.info """
 ============================================================================
   sceQTL analysis using linear models with tensorQTL ~ v${VERSION}
 ============================================================================
 input directory                                : ${params.input_dir}
 gene annotation file                           : ${params.gene_annotation}
+eQTL reference table                           : ${params.eqtl_reference_tsvfile}
 minimum number of cells per donor              : ${params.minimum_cell_number}
 """.stripIndent()
 
@@ -89,7 +93,8 @@ workflow {
       aggregate_normalize_dSum.out.aggrnorm_bed,
       params.gene_annotation,
       prep_genotypes.out.plink_genotype_pcs_tsv,
-      prep_genotypes.out.plink_files
+      prep_genotypes.out.plink_files,
+      params.eqtl_reference_csvfile
     )
 }
 
