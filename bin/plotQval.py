@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+DEBUG = True
+
 import sys
 import numpy as np
 import pandas as pd
@@ -41,17 +43,21 @@ def read_qtltab(fnam):
     return qds
 
 def join_and_filter(qdf, rdf):
-    mdf = pd.merge(qdf, rdf, on = 'ensembl_id', how = "outer")
+    mdf = pd.merge(qdf, rdf, on = 'ensembl_id', how = "outer").set_index("ensembl_id")
+
+    if DEBUG:
+        mdf.to_csv("join.csv")
+
+
+    # set NaNs to rank 0
+    mdf.loc[np.isnan(mdf["pval_r"]), "rank_r"] = 0
+    mdf.loc[np.isnan(mdf["pval_q"]), "rank_q"] = 0
 
     # select only those rows that represent significant entries in either data set
-    mf = mdf[(mdf["qval_q"] <= 0.05) | (mdf['signif05_r'] == '*')]
-    # set NaNs to rank 0
-    zr = np.isnan(mf["pval_r"])
-    mf.loc[zr, "rank_r"] = 0
-    zq = np.isnan(mf["pval_q"])
-    mf.loc[zq, "rank_q"] = 0
+    is_signif = (mdf["qval_q"] <= 0.05) | (mdf['signif05_r'] == '*')
+    df = mdf[is_signif]
 
-    return mf.convert_dtypes(convert_floating = False).set_index("ensembl_id")
+    return df.astype({"rank_r":"int32", "rank_q":"int32"})
 
 def make_rank_plots(mf, fnam):
     # make a scatter plot of ranks

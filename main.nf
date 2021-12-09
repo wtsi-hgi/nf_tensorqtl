@@ -37,7 +37,7 @@ params.gene_annotation = "/lustre/scratch123/hgi/projects/ukbb_scrna/pipelines/P
 // ENSG00000186092	ENSG00000186092	ENSG00000186092	chr1	65419	71585	1	OR4F5
 // ...
 
-params.genotype_vcf = "/lustre/scratch123/hgi/projects/ukbb_scrna/eval/groningen/genotypes/franke_gt.vcf"
+params.genotype_vcf = "/lustre/scratch123/hgi/projects/ukbb_scrna/eval/groningen/genotypes/franke_gt.vcf.gz"
 
 params.minimum_cell_number = 5
 // minimum number of cells of a given cell-type donors must have to be included in eQTL analysis

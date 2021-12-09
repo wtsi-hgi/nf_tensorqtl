@@ -12,7 +12,7 @@ process prep_plink_files_from_genotype_vcf {
     // plink2 --memory argument interpreted as MiB
     """
       plink2 --make-pgen --max-alleles 2 --vcf ${genotype_vcf} --out tmp_gt_plink
-      plink2 --make-pgen --sort-vars --memory ${task.memory} --threads ${task.cpus} --pfile tmp_gt_plink --out tmp_gt_plink_srt
+      plink2 --make-pgen --sort-vars --threads ${task.cpus} --pfile tmp_gt_plink --out tmp_gt_plink_srt
       plink2 --make-bed --output-chr chrM --pfile tmp_gt_plink_srt --snps-only --out ${plink_bed_fnprfx}
     """
 }
