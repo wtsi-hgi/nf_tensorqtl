@@ -6,6 +6,7 @@ import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib_venn import venn2
 
 def read_reftab(fnam):
     df = pd.read_csv(fnam, header = [0,1])
@@ -92,6 +93,44 @@ def make_rank_plots(mf, fnam):
     fig.savefig("{:s}.pdf".format(fnam))
     return fig
 
+def make_venn_plots(df, fnam):
+    fig, axes = plt.subplots(nrows=1, ncols=2, constrained_layout=False)
+    # all significant genes in each set
+    genes_signif_franke = df.index[df['signif05_r'] == '*']
+    genes_signif_tensorqtl = df.index[df['qval_q'] <= 0.05]
+    genes_common = genes_signif_franke.intersection(genes_signif_tensorqtl)
+    v = venn2(
+        subsets={
+            '10':len(genes_signif_franke),
+            '01':len(genes_signif_tensorqtl),
+            '11':len(genes_common)
+            },
+        set_labels = ('franke', 'tensorqtl'),
+        set_colors = ('blue','red'),
+        alpha = 0.1,
+        ax = axes[0]
+        )
+    axes[0].set_title("Genes with associations at FDR < 5%")
+    # take the top ranking genes (by p-value) in each set.
+    # the number of top-ranking genes is equal to the number of genes with FDR < 5% according to tensorqtl
+    n_signif_tensorqtl = len(genes_signif_tensorqtl)
+    genes_top_franke = df.index[(df['rank_r'] <= n_signif_tensorqtl) & (df['rank_r'] > 0)]
+    top_genes_common = genes_top_franke.intersection(genes_signif_tensorqtl)
+    v = venn2(
+        subsets={
+            '10':len(genes_top_franke),
+            '01':n_signif_tensorqtl,
+            '11':len(top_genes_common)
+            },
+        set_labels = ('franke', 'tensorqtl'),
+        set_colors = ('blue','red'),
+        alpha = 0.1,
+        ax = axes[1]
+        )
+    axes[1].set_title("Top n genes (n: FDR < 5% by tensorqtl)")
+    fig.savefig("{:s}_overlap.pdf".format(fnam))
+    return fig
+
 if __name__ == '__main__':
 
     nargs = len(sys.argv)
@@ -106,6 +145,7 @@ if __name__ == '__main__':
     rdf = read_reftab(fnreftab)
     qdf = read_qtltab(fnqtltab)
     mf = join_and_filter(qdf, rdf)
-    fig = make_rank_plots(mf, oufn)
+    fig1 = make_rank_plots(mf, oufn)
+    fig2 = make_venn_plots(mf, oufn)
 
     exit(0)

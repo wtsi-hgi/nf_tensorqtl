@@ -61,6 +61,7 @@ RUN Rscript -e 'if (!requireNamespace("BiocManager", quietly = TRUE)) {install.p
 RUN pip3 install --upgrade pip setuptools
 RUN pip3 install numpy pandas scipy anndata
 RUN pip3 install pandas-plink ipython jupyter matplotlib pyarrow torch rpy2 gcsfs
+RUN pip3 install matplotlib-venn
 
 RUN wget https://github.com/broadinstitute/tensorqtl/archive/v1.0.6.tar.gz && \
     tar -xf v1.0.6.tar.gz && mv tensorqtl-1.0.6 tensorqtl && \
