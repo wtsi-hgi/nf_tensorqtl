@@ -24,6 +24,7 @@ FMT_BEDFNAM_COUNT_MARIX = "{:s}_{:s}_counts.bed.gz"
 FMT_FNAM_CELLNUM_TABLE = "{:s}_{:s}_ncells.tsv"
 FNAM_GENE_IDS = "gene_ids_without_annotation.txt"
 FNAM_FILE_TABLE = "celltype_files.tsv"
+CELLTYPE_PSEUDOBULK = 'pseudobulk'
 
 CHRNAM_PREFIX_BED = 'chr'
 COUNT_MATRIX_COLUMN_DICT = {
@@ -132,9 +133,9 @@ class DataHandover:
             sys.stderr.write(f"WARNING: CIS reference point '{ref}' is not defined. BED start/end positions unchanged.\n")
         return is_defined
 
-    def _f_sum_over_celltype(self, ad, celltyp = 'all'):
+    def _f_sum_over_celltype(self, ad, celltyp = CELLTYPE_PSEUDOBULK):
         sv_qcpass = ad.obs['qc.filter.pass'] == 'True'
-        if celltyp is None or celltyp == 'all':
+        if celltyp is None or celltyp == CELLTYPE_PSEUDOBULK:
             # generate pseudo-bulk count
             n_cells_celltype = len(sv_qcpass)
         else:
@@ -155,7 +156,7 @@ class DataHandover:
                 oufh.write("{:s}\n".format(gn))
         return len(self.failed_gene_ids)
 
-    def sum_counts_over_celltype(self, celltype = 'all'):
+    def sum_counts_over_celltype(self, celltype = CELLTYPE_PSEUDOBULK):
         count_df_lst = []
         n_cells_celltype_lst = []
         n_cells_qc_pass_lst = []
@@ -176,7 +177,10 @@ class DataHandover:
 
         return counts_df, donor_df
 
-    def aggregate_over_celltype(self, celltype = 'all', n_cells_min = int(0), outdir = os.curdir, oufprfx = 'aggrsc'):
+    def aggregate_over_celltype(self,
+        celltype = CELLTYPE_PSEUDOBULK, n_cells_min = int(0),
+        outdir = os.curdir, oufprfx = 'aggrsc'
+        ):
         n_lines = 0
         count_matrix, donor_df = self.sum_counts_over_celltype(celltype = celltype)
         celltypestr = celltype.translate(STRTRANSL_SPACE_TO_UNDERSCORE)
@@ -278,7 +282,7 @@ if __name__ == '__main__':
 
     # print(celltypes)
     ctr = 0
-    celltypes = ['all'] + list(dh.cell_types)
+    celltypes = [CELLTYPE_PSEUDOBULK] + list(dh.cell_types)
     bed_file_lst = []
     tsv_file_lst = []
     n_donors_lst = []

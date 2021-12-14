@@ -137,8 +137,12 @@ workflow map_eqtl {
     add_qvalues(
       run_tensorqtl.out.qval_tsv
     )
+    add_qvalues.out.cis_qtl_qval_tsv
+      .filter( ~/\S+_pseudobulk.\S+/ )
+      .set {ch_pseudobulk_eqtls}
+
     plot_rank_comparison(
-      add_qvalues.out.cis_qtl_qval_tsv,
+      ch_pseudobulk_eqtls,
       eqtl_reference_csvfile
     )
   emit:
